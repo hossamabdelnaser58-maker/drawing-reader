@@ -490,24 +490,47 @@
         renderDims(); renderSummary();
         var isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
         if (isPdf) loadPdf(file);
-        else {
-          var url = URL.createObjectURL(file);
-          var img = new Image();
-          img.onload = function () {
+        else loadImageBlob(file);
+      }
+
+      function showLoadError(msg) {
+        setProgress(false);
+        var ve = $("viewerEmpty");
+        ve.hidden = false;
+        ve.innerHTML = '<div style="color:#b91c1c;font-weight:700">' + esc(msg) + '</div>';
+        toast(msg);
+      }
+
+      function loadImageBlob(blob) {
+        setProgress(true, 20, "جارٍ تجهيز الصورة…");
+        var url = URL.createObjectURL(blob);
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var maxDim = 2800;
+            var w = img.naturalWidth, h = img.naturalHeight;
+            var k = Math.min(1, maxDim / Math.max(w, h));
+            var cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
             var c = document.createElement("canvas");
-            c.width = img.naturalWidth; c.height = img.naturalHeight;
-            c.getContext("2d").drawImage(img, 0, 0);
+            c.width = cw; c.height = ch;
+            c.getContext("2d").drawImage(img, 0, 0, cw, ch);
             URL.revokeObjectURL(url);
-            state.pages = [{ dataUrl: c.toDataURL("image/png"), width: c.width, height: c.height }];
+            var dataUrl = c.toDataURL("image/png");
+            if (!dataUrl || dataUrl.length < 10000) throw new Error("blank");
+            setProgress(false);
+            state.pages = [{ dataUrl: dataUrl, width: cw, height: ch }];
             state.pageIndex = 0;
             showPage(0); renderThumbs();
             $("btnAnalyze").disabled = false;
             toast("اتحمّلت الرسمة — دوس «تحليل الرسمة» لاستخراج المقاسات");
-          };
-          img.onerror = function () { toast("مش قادر أفتح الملف ده — جرّب صورة أو PDF تاني"); };
-          img.src = url;
-        }
+          } catch (err) {
+            showLoadError("مش قادر أفتح الملف ده — جرّب صورة أو PDF تاني");
+          }
+        };
+        img.onerror = function () { showLoadError("مش قادر أفتح الملف ده — جرّب صورة أو PDF تاني"); };
+        img.src = url;
       }
+
 
       function loadPdf(file) {
         if (typeof pdfjsLib === "undefined") { toast("مكتبة قراءة PDF لسه محمّلتش — اتأكد من الإنترنت وحاول تاني"); return; }
@@ -668,12 +691,21 @@
         state.pages.forEach(function (p, idx) {
           chain = chain.then(function () {
             setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ قراءة صفحة " + (idx + 1) + " من " + state.pages.length + " — استخراج النصوص والأرقام…");
-            return Tesseract.recognize(p.dataUrl, "ara+eng", {
-              logger: function (m) {
-                if (m.status === "recognizing text") {
-                  setProgress(true, Math.round(100 * (idx + m.progress) / state.pages.length), "جارٍ قراءة صفحة " + (idx + 1) + " — " + Math.round(m.progress * 100) + "%");
+            return ocrImage(p).then(function (ocrUrl) {
+              return Tesseract.recognize(ocrUrl, "ara+eng", {
+                logger: function (m) {
+                  var pc = Math.round((m.progress || 0) * 100);
+                  if (m.status === "recognizing text") {
+                    setProgress(true, Math.round(100 * (idx + m.progress) / state.pages.length), "جارٍ قراءة صفحة " + (idx + 1) + " — " + pc + "%");
+                  } else if (m.status === "loading tesseract core") {
+                    setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ تحميل محرك التحليل — " + pc + "%");
+                  } else if (m.status === "loading language traineddata") {
+                    setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ تحميل بيانات اللغة (أول مرة بس) — " + pc + "%");
+                  } else if (m.status === "initializing tesseract" || m.status === "initializing api") {
+                    setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ تجهيز محرك التحليل…");
+                  }
                 }
-              }
+              });
             }).then(function (res) {
               allText.push(res.data.text || "");
               pageWords = pageWords.concat(res.data.words || []);
@@ -695,6 +727,25 @@
           renderDims(); renderSummary(); saveToLibrary();
           if (state.dims.length) toast("التحليل خلص: لقيت " + state.dims.length + " مقاس — راجع المقاسات ضعيفة الثقة");
           else toast("التحليل خلص، بس ملقيتش أرقام واضحة — جرّب صورة أوضح أو أضف المقاسات يدويًا");
+        });
+      }
+
+      function ocrImage(p) {
+        var maxDim = 2000;
+        if (Math.max(p.width, p.height) <= maxDim) return Promise.resolve(p.dataUrl);
+        return new Promise(function (res) {
+          var img = new Image();
+          img.onload = function () {
+            try {
+              var k = maxDim / Math.max(p.width, p.height);
+              var c = document.createElement("canvas");
+              c.width = Math.max(1, Math.round(p.width * k)); c.height = Math.max(1, Math.round(p.height * k));
+              c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+              res(c.toDataURL("image/jpeg", 0.9));
+            } catch (e) { res(p.dataUrl); }
+          };
+          img.onerror = function () { res(p.dataUrl); };
+          img.src = p.dataUrl;
         });
       }
 
