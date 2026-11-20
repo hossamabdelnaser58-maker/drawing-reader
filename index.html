@@ -1,0 +1,1082 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>برنامج الرسومات الهندسية — ملف مستقل</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
+    </style>
+    <style>
+      :root {
+        --bg: #eef2f5;
+        --surface: #ffffff;
+        --surface-2: #f6f9fb;
+        --ink: #152736;
+        --muted: #5a6d80;
+        --line: #d3dde6;
+        --accent: #145da0;
+        --accent-strong: #0e4a82;
+        --accent-soft: #e3edf7;
+        --ok: #177245;
+        --ok-soft: #e2f2e9;
+        --warn: #9a6206;
+        --warn-soft: #fdf0d7;
+        --danger: #b3352c;
+        --danger-soft: #fbe7e4;
+        --chip: #e8eef4;
+        --shadow: 0 1px 3px rgba(21, 39, 54, .08), 0 6px 18px rgba(21, 39, 54, .06);
+        --radius: 10px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0c141d;
+          --surface: #15222f;
+          --surface-2: #101b27;
+          --ink: #e7eef5;
+          --muted: #9db1c4;
+          --line: #2b3d50;
+          --accent: #5ea3e3;
+          --accent-strong: #8dbdee;
+          --accent-soft: #1b3049;
+          --ok: #4cc084;
+          --ok-soft: #143527;
+          --warn: #e0aa4e;
+          --warn-soft: #3a2c10;
+          --danger: #ef8a80;
+          --danger-soft: #3d1d19;
+          --chip: #1d2e40;
+          --shadow: 0 1px 3px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .mono { font-family: "IBM Plex Mono", ui-monospace, monospace; direction: ltr; unicode-bidi: embed; }
+      .wrap { max-width: 1240px; margin: 0 auto; padding: 16px 14px 48px; }
+
+      header.top {
+        display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between;
+        padding: 6px 2px 14px;
+      }
+      header.top h1 { font-size: 1.35rem; margin: 0; font-weight: 700; letter-spacing: 0; }
+      header.top p { margin: 2px 0 0; color: var(--muted); font-size: .92rem; }
+      .top-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+      .btn {
+        appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+        border-radius: 8px; padding: 8px 14px; font: inherit; font-size: .95rem; font-weight: 600;
+        cursor: pointer; display: inline-flex; align-items: center; gap: 8px; min-height: 44px;
+      }
+      .btn:hover { border-color: var(--accent); }
+      .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .btn.primary:hover { background: var(--accent-strong); }
+      .btn.ghost { background: transparent; }
+      .btn.small { min-height: 38px; padding: 5px 11px; font-size: .88rem; }
+      .btn:disabled { opacity: .5; cursor: not-allowed; }
+      .btn svg { width: 18px; height: 18px; flex: none; }
+
+      .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px;
+      }
+      .card h2 { font-size: 1.08rem; margin: 0 0 4px; font-weight: 700; }
+      .card h2 .sub { display: block; font-size: .85rem; color: var(--muted); font-weight: 400; margin-top: 2px; }
+      .card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+      .card-head h2 { margin: 0; }
+
+      /* Upload */
+      .drop {
+        border: 2px dashed var(--accent); border-radius: var(--radius);
+        background:
+          repeating-linear-gradient(0deg, transparent, transparent 23px, color-mix(in srgb, var(--accent) 7%, transparent) 24px),
+          repeating-linear-gradient(90deg, transparent, transparent 23px, color-mix(in srgb, var(--accent) 7%, transparent) 24px),
+          var(--accent-soft);
+        padding: 26px 16px; text-align: center; cursor: pointer;
+      }
+      .drop.drag { background: var(--accent-soft); outline: 3px solid var(--accent); }
+      .drop .big { font-size: 1.12rem; font-weight: 700; margin: 8px 0 2px; }
+      .drop .small { color: var(--muted); font-size: .9rem; }
+      .drop svg { width: 44px; height: 44px; color: var(--accent); }
+      .type-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+      .type-row label { font-weight: 600; font-size: .92rem; }
+      select, input[type="text"], input[type="number"], textarea {
+        font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line);
+        border-radius: 8px; padding: 7px 10px; min-height: 44px;
+      }
+      select:focus, input:focus, textarea:focus, .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+      .progress { display: none; margin-top: 14px; }
+      .progress.show { display: block; }
+      .bar { height: 10px; background: var(--chip); border-radius: 99px; overflow: hidden; }
+      .bar > div { height: 100%; width: 0%; background: var(--accent); transition: width .25s; }
+      .progress p { margin: 6px 0 0; font-size: .88rem; color: var(--muted); }
+
+      .layout { display: grid; grid-template-columns: 1fr; gap: 0; }
+      @media (min-width: 980px) {
+        .layout { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+        .layout .card { margin-bottom: 16px; }
+      }
+
+      /* Viewer */
+      .viewer-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+      .viewer-tools .sep { width: 1px; height: 26px; background: var(--line); margin: 0 2px; }
+      .stage-scroll {
+        overflow: auto; max-height: 70vh; border: 1px solid var(--line); border-radius: 8px;
+        background: var(--surface-2); position: relative;
+      }
+      .stage-inner { position: relative; transform-origin: top right; width: fit-content; margin: 0 auto; }
+      .stage-inner img { display: block; max-width: 100%; }
+      .stage-inner canvas.overlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+      .stage-inner canvas.overlay.active { cursor: crosshair; }
+      .thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+      .thumbs button {
+        border: 2px solid var(--line); border-radius: 8px; padding: 3px; background: var(--surface);
+        cursor: pointer; line-height: 0;
+      }
+      .thumbs button.sel { border-color: var(--accent); }
+      .thumbs img { width: 74px; height: 54px; object-fit: cover; border-radius: 4px; display: block; }
+      .measure-panel { display: none; margin-top: 12px; background: var(--accent-soft); border-radius: 8px; padding: 12px; }
+      .measure-panel.show { display: block; }
+      .measure-panel p { margin: 0 0 8px; font-size: .92rem; }
+      .measure-panel .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+      .measure-panel input { width: 130px; }
+      .hint { font-size: .86rem; color: var(--muted); margin: 8px 0 0; }
+      .empty {
+        border: 1.5px dashed var(--line); border-radius: 8px; padding: 26px 14px; text-align: center; color: var(--muted);
+      }
+
+      /* Summary */
+      .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-bottom: 12px; }
+      .fact { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+      .fact .k { font-size: .8rem; color: var(--muted); }
+      .fact .v { font-weight: 700; font-size: 1.02rem; }
+      .summary-text { white-space: pre-wrap; font-size: .97rem; }
+      .kv { margin: 0; padding: 0; list-style: none; }
+      .kv li { display: flex; gap: 8px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: .93rem; }
+      .kv li:last-child { border-bottom: 0; }
+      .kv .k { color: var(--muted); min-width: 92px; font-weight: 600; }
+
+      /* Table */
+      .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+      table { border-collapse: collapse; width: 100%; min-width: 640px; background: var(--surface); }
+      th, td { padding: 8px 9px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: middle; font-size: .93rem; }
+      th { background: var(--surface-2); font-weight: 700; white-space: nowrap; }
+      td input[type="text"], td input[type="number"] { width: 100%; min-height: 38px; padding: 4px 8px; }
+      td select { min-height: 38px; padding: 4px 6px; }
+      td.num input { text-align: left; direction: ltr; }
+      .conf { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+      .conf.high { background: var(--ok-soft); color: var(--ok); }
+      .conf.mid { background: var(--warn-soft); color: var(--warn); }
+      .conf.low { background: var(--danger-soft); color: var(--danger); }
+      .icon-btn {
+        border: 1px solid var(--line); background: var(--surface); color: var(--danger); border-radius: 7px;
+        width: 38px; height: 38px; cursor: pointer; font-size: 1rem; line-height: 1;
+      }
+      .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .stat { background: var(--chip); border-radius: 8px; padding: 6px 12px; font-size: .9rem; }
+      .stat b { font-weight: 700; }
+
+      /* QA */
+      .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+      .chip-btn {
+        border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 99px;
+        padding: 6px 13px; font: inherit; font-size: .88rem; cursor: pointer; min-height: 38px;
+      }
+      .chip-btn:hover { border-color: var(--accent); }
+      .qa-log { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+      .qa-item .q { font-weight: 700; font-size: .94rem; }
+      .qa-item .a { background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; font-size: .94rem; white-space: pre-wrap; }
+      .qa-form { display: flex; gap: 8px; }
+      .qa-form input { flex: 1; }
+
+      /* Library */
+      .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+      .lib-item { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); cursor: pointer; text-align: right; padding: 0; font: inherit; }
+      .lib-item img { width: 100%; height: 92px; object-fit: cover; display: block; background: var(--surface-2); }
+      .lib-item .meta { padding: 8px 10px; }
+      .lib-item .name { font-weight: 700; font-size: .9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .lib-item .info { color: var(--muted); font-size: .8rem; }
+      .lib-tools { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+      .lib-tools input { flex: 1; min-width: 160px; }
+
+      .toast {
+        position: fixed; bottom: 18px; inset-inline-start: 50%; transform: translateX(50%);
+        background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 99px; font-size: .92rem;
+        font-weight: 600; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .25s; z-index: 50;
+        max-width: 92vw; text-align: center;
+      }
+      [dir="rtl"] .toast { transform: translateX(50%); }
+      .toast.show { opacity: 1; }
+      .note { font-size: .85rem; color: var(--muted); }
+      footer { color: var(--muted); font-size: .85rem; text-align: center; padding-top: 8px; }
+      @media print {
+        .top-actions, .drop, .viewer-tools, .qa-form, .chips, .lib-tools, .no-print { display: none !important; }
+        body { background: #fff; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="top">
+        <div>
+          <h1>قارئ الرسومات الهندسية</h1>
+          <p>ارفع أي رسمة — معماري، إنشائي، ميكانيكا، كهرباء، سباكة، تكييف — واحصل على ملخص وجدول بكل المقاسات.</p>
+        </div>
+        <div class="top-actions">
+          <button class="btn" id="btnDownloadApp" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            تنزيل نسخة مستقلة
+          </button>
+        </div>
+      </header>
+
+      <!-- ===== Upload ===== -->
+      <section class="card">
+        <div class="drop" id="dropZone" role="button" tabindex="0" aria-label="رفع رسمة هندسية">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/></svg>
+          <div class="big">صوّر الرسمة أو ارفعها من جهازك</div>
+          <div class="small">اسحب الملف هنا أو دوس للاختيار — صورة (JPG / PNG) أو ملف PDF متعدد الصفحات</div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*,.pdf,application/pdf" hidden />
+        <div class="type-row">
+          <label for="typeSelect">نوع الرسمة:</label>
+          <select id="typeSelect">
+            <option value="auto" selected>اكتشاف تلقائي</option>
+            <option value="معماري">معماري</option>
+            <option value="إنشائي">إنشائي</option>
+            <option value="ميكانيكي">ميكانيكي</option>
+            <option value="كهربائي">كهربائي</option>
+            <option value="سباكة وصحي">سباكة وصحي</option>
+            <option value="تكييف وتدفئة">تكييف وتدفئة</option>
+            <option value="مساحة وأراضي">مساحة وأراضي</option>
+            <option value="أخرى">أخرى</option>
+          </select>
+          <button class="btn primary" id="btnAnalyze" type="button" disabled>تحليل الرسمة واستخراج المقاسات</button>
+        </div>
+        <div class="progress" id="progressBox">
+          <div class="bar"><div id="progressBar"></div></div>
+          <p id="progressText">جارٍ التحضير…</p>
+        </div>
+      </section>
+
+      <div class="layout">
+        <!-- ===== Viewer ===== -->
+        <section class="card">
+          <div class="card-head">
+            <h2>عارض الرسمة</h2>
+            <div class="viewer-tools no-print">
+              <button class="btn small" id="btnZoomOut" type="button" aria-label="تصغير">−</button>
+              <span class="mono" id="zoomLabel">100%</span>
+              <button class="btn small" id="btnZoomIn" type="button" aria-label="تكبير">+</button>
+              <button class="btn small" id="btnZoomFit" type="button">ملاءمة</button>
+              <span class="sep"></span>
+              <button class="btn small" id="btnCalibrate" type="button">معايرة القياس</button>
+              <button class="btn small" id="btnMeasure" type="button">قياس مسافة</button>
+            </div>
+          </div>
+          <div id="viewerEmpty" class="empty">لسه مفيش رسمة مرفوعة. ارفع صورة أو PDF من فوق وهتظهر هنا تقدر تكبّرها وتقيس عليها.</div>
+          <div class="stage-scroll" id="stageScroll" hidden>
+            <div class="stage-inner" id="stageInner">
+              <img id="stageImg" alt="الرسمة الهندسية المرفوعة" />
+              <canvas class="overlay" id="overlay"></canvas>
+            </div>
+          </div>
+          <div class="thumbs" id="thumbs"></div>
+          <div class="measure-panel" id="measurePanel">
+            <p id="measureText"></p>
+            <div class="row" id="calibrateRow" hidden>
+              <label for="calibInput">المسافة الحقيقية بين النقطتين:</label>
+              <input type="number" id="calibInput" class="mono" min="0" step="any" placeholder="مثال: 5000" />
+              <select id="calibUnit">
+                <option value="mm">مم</option>
+                <option value="cm">سم</option>
+                <option value="m">م</option>
+              </select>
+              <button class="btn small primary" id="btnCalibSave" type="button">حفظ المعايرة</button>
+            </div>
+            <div class="row">
+              <span id="measureResult" style="font-weight:700"></span>
+              <button class="btn small" id="btnMeasureAdd" type="button" hidden>إضافة لجدول المقاسات</button>
+              <button class="btn small ghost" id="btnMeasureCancel" type="button">إلغاء</button>
+            </div>
+          </div>
+          <p class="hint">المعايرة: اختر نقطتين على بُعد معروف في الرسمة واكتب قيمته الحقيقية، وبعدها تقدر تقيس أي مسافة تانية بدقة. القياسات اليدوية بتضاف للجدول بعلامة «قياس يدوي».</p>
+        </section>
+
+        <!-- ===== Summary ===== -->
+        <section class="card">
+          <div class="card-head">
+            <h2>ملخص الرسمة</h2>
+            <button class="btn small no-print" id="btnCopySummary" type="button" disabled>نسخ الملخص</button>
+          </div>
+          <div id="summaryEmpty" class="empty">بعد تحليل الرسمة هيظهر هنا ملخص بالعربي: النوع، بيانات لوحة العنوان، وأهم المقاسات والملاحظات.</div>
+          <div id="summaryBody" hidden>
+            <div class="facts" id="facts"></div>
+            <p class="summary-text" id="summaryText"></p>
+            <h3 style="margin:14px 0 4px;font-size:.98rem">بيانات لوحة العنوان</h3>
+            <ul class="kv" id="titleBlock"></ul>
+          </div>
+        </section>
+      </div>
+
+      <!-- ===== Dimensions table ===== -->
+      <section class="card">
+        <div class="card-head">
+          <h2>جدول المقاسات <span class="sub" style="display:inline;font-size:.85rem;color:var(--muted)">كل المقاسات المستخرجة — راجع وعدّل أي قيمة قبل الاعتماد</span></h2>
+          <div class="no-print" style="display:flex;flex-wrap:wrap;gap:8px">
+            <button class="btn small" id="btnAddRow" type="button">+ إضافة مقاس</button>
+            <button class="btn small" id="btnExportCsv" type="button">تنزيل الجدول (Excel / CSV)</button>
+            <button class="btn small" id="btnExportReport" type="button">تنزيل تقرير كامل</button>
+          </div>
+        </div>
+        <div id="tableEmpty" class="empty">لا توجد مقاسات بعد. حلّل رسمة أو أضف مقاسًا يدويًا من الزرار اللي فوق.</div>
+        <div class="table-scroll" id="tableWrap" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th style="width:44px">#</th>
+                <th>العنصر / الوصف</th>
+                <th style="width:130px">القيمة</th>
+                <th style="width:96px">الوحدة</th>
+                <th style="width:150px">النص كما ظهر في الرسمة</th>
+                <th style="width:104px">الثقة</th>
+                <th>ملاحظات</th>
+                <th style="width:52px"></th>
+              </tr>
+            </thead>
+            <tbody id="dimsBody"></tbody>
+          </table>
+        </div>
+        <div class="stats" id="stats"></div>
+        <p class="note">المقاسات بعلامة ثقة منخفضة أو متوسطة اتقرأت آليًا من الصورة وممكن تكون غلط — راجعها على الرسمة الأصلية قبل التنفيذ. القطر بيبدأ بـ Ø ونصف القطر بـ R.</p>
+      </section>
+
+      <!-- ===== Q&A ===== -->
+      <section class="card">
+        <div class="card-head"><h2>اسأل عن الرسمة</h2></div>
+        <div class="chips no-print">
+          <button class="chip-btn" type="button" data-q="ما ملخص هذه الرسمة؟">ملخص الرسمة</button>
+          <button class="chip-btn" type="button" data-q="ما أكبر مقاس؟">أكبر مقاس</button>
+          <button class="chip-btn" type="button" data-q="ما أصغر مقاس؟">أصغر مقاس</button>
+          <button class="chip-btn" type="button" data-q="كم عدد المقاسات؟">عدد المقاسات</button>
+          <button class="chip-btn" type="button" data-q="ما مقياس الرسم؟">مقياس الرسم</button>
+          <button class="chip-btn" type="button" data-q="ما المقاسات منخفضة الثقة؟">المقاسات المحتاجة مراجعة</button>
+        </div>
+        <div class="qa-log" id="qaLog"></div>
+        <form class="qa-form no-print" id="qaForm">
+          <input type="text" id="qaInput" placeholder="اكتب سؤالك… مثال: مقاسات الأبواب كام؟" aria-label="سؤالك عن الرسمة" />
+          <button class="btn primary" type="submit">اسأل</button>
+        </form>
+      </section>
+
+      <!-- ===== Library ===== -->
+      <section class="card">
+        <div class="card-head"><h2>مكتبة الرسومات <span class="sub" style="display:inline;font-size:.85rem;color:var(--muted)">محفوظة أثناء الجلسة الحالية — حمّل النسخة المستقلة والتقارير للاحتفاظ بها</span></h2></div>
+        <div class="lib-tools no-print">
+          <input type="text" id="libSearch" placeholder="ابحث باسم الرسمة أو نوعها…" aria-label="بحث في المكتبة" />
+          <select id="libFilter" aria-label="فلترة حسب النوع">
+            <option value="">كل الأنواع</option>
+            <option>معماري</option><option>إنشائي</option><option>ميكانيكي</option>
+            <option>كهربائي</option><option>سباكة وصحي</option><option>تكييف وتدفئة</option>
+            <option>مساحة وأراضي</option><option>أخرى</option>
+          </select>
+        </div>
+        <div id="libEmpty" class="empty">المكتبة فاضية. أول رسمة تحلّلها هتتحفظ هنا تلقائيًا.</div>
+        <div class="lib-grid" id="libGrid"></div>
+      </section>
+
+      <footer>يعمل بالكامل داخل المتصفح: التحليل بيتم بقراءة النصوص والأرقام من صورة الرسمة نفسها، فراجع دايمًا المقاسات المهمة على الأصل قبل التنفيذ.</footer>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+    <script>
+    (function () {
+      "use strict";
+      var $ = function (id) { return document.getElementById(id); };
+
+      /* ---------- State ---------- */
+      var state = {
+        fileName: "",
+        pages: [],          // [{dataUrl, width, height}]
+        pageIndex: 0,
+        dims: [],           // [{element, value, unit, raw, confidence, note, source}]
+        ocrText: "",
+        scale: "",
+        drawingType: "",
+        titleBlock: {},
+        zoom: 1,
+        pxPerMm: null,      // calibration
+        measureMode: null,  // 'calibrate' | 'measure'
+        measurePts: [],
+        lastMeasureMm: null,
+        library: []         // session-only projects
+      };
+
+      var UNIT_TO_MM = { "mm": 1, "مم": 1, "cm": 10, "سم": 10, "m": 1000, "م": 1000, "in": 25.4, '"': 25.4, "°": null };
+      var ELEMENT_KEYS = [
+        ["باب", "باب"], ["أبواب", "باب"], ["door", "باب"],
+        ["شباك", "شباك"], ["نافذة", "نافذة"], ["نوافذ", "نافذة"], ["window", "نافذة"],
+        ["عمود", "عمود"], ["أعمدة", "عمود"], ["column", "عمود"],
+        ["كمرة", "كمرة"], ["كمرات", "كمرة"], ["beam", "كمرة"],
+        ["قاعدة", "قاعدة"], ["أساس", "قاعدة"], ["footing", "قاعدة"],
+        ["بلاطة", "بلاطة"], ["سقف", "بلاطة"], ["slab", "بلاطة"],
+        ["سلم", "سلم"], ["درج", "سلم"], ["stair", "سلم"],
+        ["غرفة", "غرفة"], ["مطبخ", "مطبخ"], ["حمام", "حمام"], ["معيشة", "غرفة معيشة"], ["نوم", "غرفة نوم"],
+        ["حائط", "حائط"], ["جدار", "حائط"], ["wall", "حائط"],
+        ["ماسورة", "ماسورة"], ["أنبوب", "ماسورة"], ["pipe", "ماسورة"], ["قطر", "قطر"],
+        ["مجرى", "مجرى هواء"], ["duct", "مجرى هواء"],
+        ["مفتاح", "مفتاح كهرباء"], ["مقبس", "مقبس كهرباء"], ["فيشة", "مقبس كهرباء"],
+        ["ارتفاع", "ارتفاع"], ["عرض", "عرض"], ["طول", "طول"], ["عمق", "عمق"],
+        ["فتحة", "فتحة"], ["منور", "منور"], ["بلكونة", "بلكونة"], ["تراس", "تراس"]
+      ];
+      var TYPE_KEYS = {
+        "معماري": ["غرفة", "مطبخ", "حمام", "معيشة", "واجهة", "مسقط", "بلكونة", "منور", "مدخل", "صالة", "floor plan", "elevation"],
+        "إنشائي": ["تسليح", "خرسانة", "حديد", "قاعدة", "أعمدة", "كمرات", "بلاطة", "أساسات", "structural", "rebar"],
+        "ميكانيكي": ["ترس", "محمل", "لحام", "خلوص", "tolerance", "shaft", "gear", "bearing", "section a", "تفاصيل"],
+        "كهربائي": ["مقبس", "قاطع", "لوحة توزيع", "إضاءة", "كابل", "فيشة", "أسلاك", "electrical", "socket", "lighting"],
+        "سباكة وصحي": ["صرف", "تغذية", "حوض", "سيفون", "مياه", "plumbing", "drain", "water supply"],
+        "تكييف وتدفئة": ["تكييف", "مجرى هواء", "duct", "hvac", "سبلت", "وحدة مناولة", "جريل"],
+        "مساحة وأراضي": ["حدود", "قطعة", "إحداثيات", "منسوب", "survey", "قطعة أرض"]
+      };
+
+      function toast(msg) {
+        var t = $("toast"); t.textContent = msg; t.classList.add("show");
+        clearTimeout(t._h); t._h = setTimeout(function () { t.classList.remove("show"); }, 2600);
+      }
+      function fmt(n) {
+        if (n == null || isNaN(n)) return "—";
+        return (Math.round(n * 100) / 100).toLocaleString("en-US");
+      }
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+
+      /* ---------- File loading ---------- */
+      var drop = $("dropZone"), fileInput = $("fileInput");
+      drop.addEventListener("click", function () { fileInput.click(); });
+      drop.addEventListener("keydown", function (e) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); } });
+      ["dragover", "dragenter"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("drag"); }); });
+      ["dragleave", "drop"].forEach(function (ev) { drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("drag"); }); });
+      drop.addEventListener("drop", function (e) { var f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+      fileInput.addEventListener("change", function () { if (fileInput.files[0]) loadFile(fileInput.files[0]); fileInput.value = ""; });
+
+      function setProgress(show, pct, text) {
+        $("progressBox").classList.toggle("show", show);
+        if (pct != null) $("progressBar").style.width = pct + "%";
+        if (text) $("progressText").textContent = text;
+      }
+
+      function loadFile(file) {
+        state.fileName = file.name;
+        state.dims = []; state.ocrText = ""; state.scale = ""; state.titleBlock = {};
+        state.pxPerMm = null; state.measurePts = []; state.lastMeasureMm = null;
+        renderDims(); renderSummary();
+        var isPdf = /pdf$/i.test(file.type) || /\.pdf$/i.test(file.name);
+        if (isPdf) loadPdf(file);
+        else {
+          var url = URL.createObjectURL(file);
+          var img = new Image();
+          img.onload = function () {
+            var c = document.createElement("canvas");
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            c.getContext("2d").drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+            state.pages = [{ dataUrl: c.toDataURL("image/png"), width: c.width, height: c.height }];
+            state.pageIndex = 0;
+            showPage(0); renderThumbs();
+            $("btnAnalyze").disabled = false;
+            toast("اتحمّلت الرسمة — دوس «تحليل الرسمة» لاستخراج المقاسات");
+          };
+          img.onerror = function () { toast("مش قادر أفتح الملف ده — جرّب صورة أو PDF تاني"); };
+          img.src = url;
+        }
+      }
+
+      function loadPdf(file) {
+        if (typeof pdfjsLib === "undefined") { toast("مكتبة قراءة PDF لسه محمّلتش — اتأكد من الإنترنت وحاول تاني"); return; }
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        setProgress(true, 10, "جارٍ فتح ملف PDF…");
+        file.arrayBuffer().then(function (buf) {
+          return pdfjsLib.getDocument({ data: buf }).promise;
+        }).then(function (pdf) {
+          var pages = [], chain = Promise.resolve();
+          for (var i = 1; i <= pdf.numPages; i++) {
+            (function (n) {
+              chain = chain.then(function () {
+                return pdf.getPage(n).then(function (page) {
+                  var vp = page.getViewport({ scale: 2 });
+                  var c = document.createElement("canvas");
+                  c.width = vp.width; c.height = vp.height;
+                  return page.render({ canvasContext: c.getContext("2d"), viewport: vp }).promise.then(function () {
+                    pages.push({ dataUrl: c.toDataURL("image/png"), width: c.width, height: c.height });
+                    setProgress(true, 10 + Math.round(60 * n / pdf.numPages), "جارٍ تجهيز صفحة " + n + " من " + pdf.numPages + "…");
+                  });
+                });
+              });
+            })(i);
+          }
+          return chain.then(function () { return pages; });
+        }).then(function (pages) {
+          state.pages = pages; state.pageIndex = 0;
+          setProgress(false);
+          showPage(0); renderThumbs();
+          $("btnAnalyze").disabled = false;
+          toast("اتحمّل PDF فيه " + pages.length + " صفحة — دوس «تحليل الرسمة»");
+        }).catch(function () {
+          setProgress(false);
+          toast("حصلت مشكلة في قراءة الـ PDF — جرّب تصدّر الصفحة كصورة وارفعها");
+        });
+      }
+
+      function showPage(i) {
+        var p = state.pages[i]; if (!p) return;
+        state.pageIndex = i;
+        var img = $("stageImg");
+        img.onload = function () { sizeOverlay(); applyZoom(); };
+        img.src = p.dataUrl;
+        $("viewerEmpty").hidden = true;
+        $("stageScroll").hidden = false;
+        renderThumbs();
+        clearOverlay();
+      }
+      function renderThumbs() {
+        var box = $("thumbs"); box.innerHTML = "";
+        if (state.pages.length < 2) return;
+        state.pages.forEach(function (p, i) {
+          var b = document.createElement("button");
+          b.type = "button"; b.setAttribute("aria-label", "صفحة " + (i + 1));
+          if (i === state.pageIndex) b.className = "sel";
+          var im = document.createElement("img"); im.src = p.dataUrl; im.alt = "صفحة " + (i + 1);
+          b.appendChild(im);
+          b.addEventListener("click", function () { showPage(i); });
+          box.appendChild(b);
+        });
+      }
+
+      /* ---------- Zoom ---------- */
+      function applyZoom() {
+        $("stageInner").style.transform = "scale(" + state.zoom + ")";
+        $("zoomLabel").textContent = Math.round(state.zoom * 100) + "%";
+      }
+      $("btnZoomIn").addEventListener("click", function () { state.zoom = Math.min(4, state.zoom * 1.25); applyZoom(); });
+      $("btnZoomOut").addEventListener("click", function () { state.zoom = Math.max(0.2, state.zoom / 1.25); applyZoom(); });
+      $("btnZoomFit").addEventListener("click", function () { state.zoom = 1; applyZoom(); });
+
+      /* ---------- Overlay / measure ---------- */
+      var overlay = $("overlay"), octx = overlay.getContext("2d");
+      function sizeOverlay() {
+        var img = $("stageImg");
+        overlay.width = img.clientWidth; overlay.height = img.clientHeight;
+      }
+      function clearOverlay() { octx.clearRect(0, 0, overlay.width, overlay.height); state.measurePts = []; }
+      function drawMeasure() {
+        clearOverlayKeep();
+        var pts = state.measurePts;
+        octx.strokeStyle = "#d43a2f"; octx.fillStyle = "#d43a2f"; octx.lineWidth = 2;
+        pts.forEach(function (p) { octx.beginPath(); octx.arc(p.x, p.y, 5, 0, Math.PI * 2); octx.fill(); });
+        if (pts.length === 2) {
+          octx.beginPath(); octx.moveTo(pts[0].x, pts[0].y); octx.lineTo(pts[1].x, pts[1].y); octx.stroke();
+        }
+      }
+      function clearOverlayKeep() { octx.clearRect(0, 0, overlay.width, overlay.height); }
+      overlay.addEventListener("click", function (e) {
+        if (!state.measureMode) return;
+        var r = overlay.getBoundingClientRect();
+        var x = (e.clientX - r.left) * overlay.width / r.width;
+        var y = (e.clientY - r.top) * overlay.height / r.height;
+        state.measurePts.push({ x: x, y: y });
+        if (state.measurePts.length > 2) state.measurePts = [{ x: x, y: y }];
+        drawMeasure();
+        if (state.measurePts.length === 2) finishMeasure();
+      });
+      function distPx(a, b) { return Math.sqrt(Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2)); }
+
+      function startMode(mode) {
+        if (!state.pages.length) { toast("ارفع رسمة الأول"); return; }
+        if (mode === "measure" && !state.pxPerMm) { toast("اعمل معايرة الأول بنقطتين على بُعد معروف"); mode = "calibrate"; }
+        state.measureMode = mode; state.measurePts = []; state.lastMeasureMm = null;
+        clearOverlay();
+        overlay.classList.add("active");
+        $("measurePanel").classList.add("show");
+        $("calibrateRow").hidden = mode !== "calibrate";
+        $("btnMeasureAdd").hidden = true;
+        $("measureResult").textContent = "";
+        $("measureText").textContent = mode === "calibrate"
+          ? "المعايرة: دوس على نقطتين في الرسمة بينهم مسافة معروفة (زي بُعد مكتوب عليها)، وبعدين اكتب قيمته الحقيقية."
+          : "القياس: دوس على نقطتين في الرسمة وهحسب المسافة الحقيقية بينهم حسب المعايرة.";
+      }
+      $("btnCalibrate").addEventListener("click", function () { startMode("calibrate"); });
+      $("btnMeasure").addEventListener("click", function () { startMode("measure"); });
+      $("btnMeasureCancel").addEventListener("click", function () {
+        state.measureMode = null; state.measurePts = [];
+        overlay.classList.remove("active"); $("measurePanel").classList.remove("show"); clearOverlay();
+      });
+      function finishMeasure() {
+        var d = distPx(state.measurePts[0], state.measurePts[1]);
+        if (state.measureMode === "calibrate") {
+          $("measureText").textContent = "تمام، حدّدت النقطتين. اكتب المسافة الحقيقية بينهم ودوس حفظ المعايرة.";
+          state._calibPx = d;
+        } else if (state.measureMode === "measure" && state.pxPerMm) {
+          var mm = d / state.pxPerMm;
+          state.lastMeasureMm = mm;
+          $("measureResult").textContent = "المسافة = " + fmt(mm) + " مم (" + fmt(mm / 10) + " سم / " + fmt(mm / 1000) + " م)";
+          $("btnMeasureAdd").hidden = false;
+        }
+      }
+      $("btnCalibSave").addEventListener("click", function () {
+        var v = parseFloat($("calibInput").value);
+        if (!state._calibPx || !(v > 0)) { toast("حدّد نقطتين واكتب قيمة صحيحة الأول"); return; }
+        var mm = v * (UNIT_TO_MM[$("calibUnit").value] || 1);
+        state.pxPerMm = state._calibPx / mm;
+        toast("اتحفظت المعايرة — دلوقتي تقدر تقيس أي مسافة");
+        startMode("measure");
+      });
+      $("btnMeasureAdd").addEventListener("click", function () {
+        if (state.lastMeasureMm == null) return;
+        state.dims.push({ element: "مسافة مقاسة يدويًا", value: Math.round(state.lastMeasureMm * 100) / 100, unit: "mm", raw: "قياس من الرسمة", confidence: 100, note: "قياس يدوي بالمعايرة", source: "manual" });
+        renderDims(); toast("اتضافت لجدول المقاسات");
+      });
+
+      /* ---------- Analysis (OCR) ---------- */
+      $("btnAnalyze").addEventListener("click", function () {
+        if (!state.pages.length) { toast("ارفع رسمة الأول"); return; }
+        if (typeof Tesseract === "undefined") { toast("مكتبة التحليل لسه محمّلتش — اتأكد من الإنترنت وحاول تاني"); return; }
+        $("btnAnalyze").disabled = true;
+        runOcr();
+      });
+
+      function runOcr() {
+        var allText = [], allDims = [], pageWords = [];
+        var chain = Promise.resolve();
+        state.pages.forEach(function (p, idx) {
+          chain = chain.then(function () {
+            setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ قراءة صفحة " + (idx + 1) + " من " + state.pages.length + " — استخراج النصوص والأرقام…");
+            return Tesseract.recognize(p.dataUrl, "ara+eng", {
+              logger: function (m) {
+                if (m.status === "recognizing text") {
+                  setProgress(true, Math.round(100 * (idx + m.progress) / state.pages.length), "جارٍ قراءة صفحة " + (idx + 1) + " — " + Math.round(m.progress * 100) + "%");
+                }
+              }
+            }).then(function (res) {
+              allText.push(res.data.text || "");
+              pageWords = pageWords.concat(res.data.words || []);
+              var dims = extractDims(res.data);
+              dims.forEach(function (d) { if (state.pages.length > 1) d.note = (d.note ? d.note + " — " : "") + "صفحة " + (idx + 1); });
+              allDims = allDims.concat(dims);
+            }).catch(function () { /* صفحة فشل قراءتها: نتجاوزها */ });
+          });
+        });
+        chain.then(function () {
+          setProgress(false);
+          $("btnAnalyze").disabled = false;
+          state.ocrText = allText.join("\n");
+          state.dims = dedupeDims(allDims);
+          state.scale = detectScale(state.ocrText);
+          state.titleBlock = extractTitleBlock(state.ocrText);
+          var chosen = $("typeSelect").value;
+          state.drawingType = chosen === "auto" ? (classifyType(state.ocrText) || "أخرى") : chosen;
+          renderDims(); renderSummary(); saveToLibrary();
+          if (state.dims.length) toast("التحليل خلص: لقيت " + state.dims.length + " مقاس — راجع المقاسات ضعيفة الثقة");
+          else toast("التحليل خلص، بس ملقيتش أرقام واضحة — جرّب صورة أوضح أو أضف المقاسات يدويًا");
+        });
+      }
+
+      function lineTextFor(word, words) {
+        if (!word.bbox) return "";
+        var cy = (word.bbox.y0 + word.bbox.y1) / 2;
+        return words.filter(function (w) {
+          return w.bbox && Math.abs((w.bbox.y0 + w.bbox.y1) / 2 - cy) < 14;
+        }).map(function (w) { return w.text; }).join(" ");
+      }
+      function elementFromContext(ctx) {
+        var low = (ctx || "").toLowerCase();
+        for (var i = 0; i < ELEMENT_KEYS.length; i++) {
+          if (low.indexOf(ELEMENT_KEYS[i][0].toLowerCase()) !== -1) return ELEMENT_KEYS[i][1];
+        }
+        return "";
+      }
+
+      function extractDims(data) {
+        var dims = [], words = data.words || [], text = data.text || "";
+        var numRe = /^([ØøΦφ])?R?(\d{1,5}(?:[.,]\d{1,3})?)$/;
+        words.forEach(function (w, i) {
+          var t = (w.text || "").trim();
+          var m = t.match(/^([ØøΦφ])?(R)?(\d{1,5}(?:[.,]\d{1,3})?)(مم|سم|mm|cm|m|°|"|in)?$/i);
+          if (!m) {
+            var m2 = t.match(numRe);
+            if (!m2) return;
+            m = [t, m2[1], null, m2[2], null];
+          }
+          var val = parseFloat(String(m[3]).replace(",", "."));
+          if (!(val > 0) || val > 100000) return;
+          var unit = m[4] ? m[4].toLowerCase() : "";
+          if (unit === "مم") unit = "mm"; if (unit === "سم") unit = "cm";
+          var next = words[i + 1] ? (words[i + 1].text || "").trim().toLowerCase() : "";
+          if (!unit && (next === "mm" || next === "cm" || next === "m" || next === "مم" || next === "سم")) {
+            unit = (next === "مم") ? "mm" : (next === "سم") ? "cm" : next;
+          }
+          var ctx = lineTextFor(w, words);
+          // أرقام صغيرة من غير وحدة ولا سياق غالبًا أرقام لوحات أو ترقيم — نتجاهلها
+          if (!unit && !m[1] && !m[2] && !elementFromContext(ctx) && val < 20) return;
+          if (!unit) unit = "mm";
+          var elem = elementFromContext(ctx);
+          var label = m[1] ? "قطر" : (m[2] ? "نصف قطر" : "");
+          if (!elem) elem = label || "بُعد";
+          else if (label && elem !== label) elem = elem + " (" + label + ")";
+          dims.push({
+            element: elem,
+            value: m[1] ? "Ø" + val : (m[2] ? "R" + val : val),
+            unit: unit, raw: t,
+            confidence: Math.round(w.confidence || 0),
+            note: "", source: "ocr"
+          });
+        });
+        // أبعاد مركبة مثل 300×400
+        var pairRe = /(\d{2,5}(?:[.,]\d+)?)\s*[x×*]\s*(\d{2,5}(?:[.,]\d+)?)/gi, pm;
+        while ((pm = pairRe.exec(text)) !== null) {
+          dims.push({
+            element: "بُعد مركّب", value: pm[1].replace(",", ".") + " × " + pm[2].replace(",", "."),
+            unit: "mm", raw: pm[0], confidence: 60, note: "طول × عرض كما ظهرا في الرسمة", source: "ocr"
+          });
+        }
+        return dims;
+      }
+      function dedupeDims(dims) {
+        var seen = {}, out = [];
+        dims.forEach(function (d) {
+          var k = d.element + "|" + d.value + "|" + d.unit + "|" + d.raw;
+          if (!seen[k]) { seen[k] = 1; out.push(d); }
+        });
+        return out;
+      }
+      function detectScale(text) {
+        var m = text.match(/1\s*[:\/]\s*(\d{1,4})/);
+        return m ? "1:" + m[1] : "";
+      }
+      function classifyType(text) {
+        var best = "", bestScore = 0;
+        Object.keys(TYPE_KEYS).forEach(function (type) {
+          var s = 0, low = text.toLowerCase();
+          TYPE_KEYS[type].forEach(function (k) { if (low.indexOf(k.toLowerCase()) !== -1) s++; });
+          if (s > bestScore) { bestScore = s; best = type; }
+        });
+        return bestScore ? best : "";
+      }
+      function extractTitleBlock(text) {
+        var tb = {}, lines = text.split(/\n/).map(function (s) { return s.trim(); }).filter(Boolean);
+        var fields = [
+          ["اسم المشروع", ["مشروع", "project"]],
+          ["اسم الرسمة / اللوحة", ["لوحة", "رسم", "drawing", "title"]],
+          ["رقم اللوحة", ["رقم اللوحة", "رقم الرسم", "dwg", "sheet"]],
+          ["المهندس / المكتب", ["مهندس", "مكتب", "engineer", "consultant"]],
+          ["المالك", ["مالك", "عميل", "client", "owner"]],
+          ["التاريخ", ["تاريخ", "date"]]
+        ];
+        fields.forEach(function (f) {
+          for (var i = 0; i < lines.length; i++) {
+            var low = lines[i].toLowerCase(), hit = false;
+            f[1].forEach(function (k) { if (low.indexOf(k.toLowerCase()) !== -1) hit = true; });
+            if (hit) {
+              var val = lines[i].replace(/^[^:：]{0,20}[:：]/, "").trim();
+              if (val && val !== lines[i]) tb[f[0]] = val;
+              else if (lines[i + 1] && lines[i + 1].length < 60) tb[f[0]] = lines[i + 1];
+              break;
+            }
+          }
+        });
+        var dm = text.match(/(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})/);
+        if (dm && !tb["التاريخ"]) tb["التاريخ"] = dm[1];
+        return tb;
+      }
+
+      /* ---------- Dimensions table ---------- */
+      function confClass(c) { return c >= 80 ? "high" : (c >= 55 ? "mid" : "low"); }
+      function confLabel(c) { return c >= 80 ? "عالية " + c + "%" : (c >= 55 ? "متوسطة " + c + "%" : "منخفضة " + c + "% — راجعها"); }
+      function toMm(d) {
+        var v = parseFloat(String(d.value).replace("Ø", "").replace("R", ""));
+        if (isNaN(v)) return null;
+        var f = UNIT_TO_MM[d.unit];
+        return f ? v * f : null;
+      }
+      function renderDims() {
+        var body = $("dimsBody"); body.innerHTML = "";
+        $("tableEmpty").hidden = state.dims.length > 0;
+        $("tableWrap").hidden = state.dims.length === 0;
+        state.dims.forEach(function (d, i) {
+          var tr = document.createElement("tr");
+          tr.innerHTML =
+            "<td class='mono'>" + (i + 1) + "</td>" +
+            "<td><input type='text' data-f='element' value='" + esc(d.element) + "' aria-label='العنصر' /></td>" +
+            "<td class='num'><input type='text' class='mono' data-f='value' value='" + esc(d.value) + "' aria-label='القيمة' /></td>" +
+            "<td><select data-f='unit' aria-label='الوحدة'>" +
+              ["mm", "cm", "m", "in", "°"].map(function (u) { return "<option value='" + u + "'" + (d.unit === u ? " selected" : "") + ">" + u + "</option>"; }).join("") +
+            "</select></td>" +
+            "<td class='mono'>" + esc(d.raw || "—") + "</td>" +
+            "<td>" + (d.source === "manual" ? "<span class='conf high'>قياس يدوي</span>" : "<span class='conf " + confClass(d.confidence) + "'>" + confLabel(d.confidence) + "</span>") + "</td>" +
+            "<td><input type='text' data-f='note' value='" + esc(d.note || "") + "' placeholder='ملاحظة…' aria-label='ملاحظات' /></td>" +
+            "<td><button class='icon-btn' type='button' data-del='" + i + "' aria-label='حذف المقاس'>✕</button></td>";
+          body.appendChild(tr);
+        });
+        body.querySelectorAll("input, select").forEach(function (el) {
+          el.addEventListener("change", function () {
+            var tr = el.closest("tr"), idx = Array.prototype.indexOf.call(body.children, tr);
+            var f = el.getAttribute("data-f");
+            if (f === "value") { var v = parseFloat(el.value); state.dims[idx].value = isNaN(v) ? el.value : v; }
+            else state.dims[idx][f] = el.value;
+            renderStats();
+          });
+        });
+        body.querySelectorAll("[data-del]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            state.dims.splice(parseInt(b.getAttribute("data-del"), 10), 1);
+            renderDims();
+          });
+        });
+        renderStats();
+      }
+      function renderStats() {
+        var box = $("stats"); box.innerHTML = "";
+        if (!state.dims.length) return;
+        var mms = state.dims.map(toMm).filter(function (v) { return v != null; });
+        var low = state.dims.filter(function (d) { return d.source !== "manual" && d.confidence < 55; }).length;
+        var parts = ["<span class='stat'>عدد المقاسات: <b>" + state.dims.length + "</b></span>"];
+        if (mms.length) {
+          parts.push("<span class='stat'>أكبر مقاس: <b class='mono'>" + fmt(Math.max.apply(null, mms)) + " mm</b></span>");
+          parts.push("<span class='stat'>أصغر مقاس: <b class='mono'>" + fmt(Math.min.apply(null, mms)) + " mm</b></span>");
+        }
+        if (low) parts.push("<span class='stat'>محتاجة مراجعة: <b>" + low + "</b></span>");
+        box.innerHTML = parts.join("");
+      }
+      $("btnAddRow").addEventListener("click", function () {
+        state.dims.push({ element: "", value: "", unit: "mm", raw: "إدخال يدوي", confidence: 100, note: "", source: "manual" });
+        renderDims();
+        var inputs = $("dimsBody").querySelectorAll("tr:last-child input");
+        if (inputs[0]) inputs[0].focus();
+      });
+
+      /* ---------- Summary ---------- */
+      function buildSummaryText() {
+        if (!state.dims.length && !state.ocrText) return "";
+        var lines = [];
+        lines.push("رسمة " + (state.drawingType || "هندسية") + (state.pages.length > 1 ? " من " + state.pages.length + " صفحات" : "") + (state.scale ? "، بمقياس رسم " + state.scale : "") + ".");
+        if (state.dims.length) {
+          var mms = state.dims.map(toMm).filter(function (v) { return v != null; });
+          lines.push("تم استخراج " + state.dims.length + " مقاسًا من الرسمة" + (mms.length ? "، أكبرها " + fmt(Math.max.apply(null, mms)) + " مم وأصغرها " + fmt(Math.min.apply(null, mms)) + " مم" : "") + ".");
+          var byElem = {};
+          state.dims.forEach(function (d) { var k = String(d.element).split(" (")[0]; byElem[k] = (byElem[k] || 0) + 1; });
+          var tops = Object.keys(byElem).sort(function (a, b) { return byElem[b] - byElem[a]; }).slice(0, 5);
+          if (tops.length) lines.push("أبرز العناصر المقروءة: " + tops.map(function (k) { return k + " (" + byElem[k] + ")"; }).join("، ") + ".");
+          var low = state.dims.filter(function (d) { return d.source !== "manual" && d.confidence < 55; });
+          if (low.length) lines.push("تنبيه: " + low.length + " مقاس ثقته منخفضة ويحتاج مراجعة على الأصل قبل الاعتماد: " + low.slice(0, 6).map(function (d) { return d.element + " " + d.value + " " + d.unit; }).join("؛ ") + ".");
+        } else {
+          lines.push("لم تظهر أرقام مقاسات واضحة في الصورة — جرّب صورة أقرب وأوضح، أو أضف المقاسات يدويًا في الجدول.");
+        }
+        if (state.titleBlock["اسم المشروع"]) lines.push("المشروع: " + state.titleBlock["اسم المشروع"] + ".");
+        return lines.join("\n");
+      }
+      function renderSummary() {
+        var has = state.dims.length > 0 || !!state.ocrText;
+        $("summaryEmpty").hidden = has;
+        $("summaryBody").hidden = !has;
+        $("btnCopySummary").disabled = !has;
+        if (!has) return;
+        var mms = state.dims.map(toMm).filter(function (v) { return v != null; });
+        var facts = [
+          ["نوع الرسمة", state.drawingType || "—"],
+          ["عدد الصفحات", state.pages.length],
+          ["عدد المقاسات", state.dims.length],
+          ["مقياس الرسم", state.scale || "غير مقروء"],
+          ["أكبر مقاس", mms.length ? fmt(Math.max.apply(null, mms)) + " مم" : "—"],
+          ["المعايرة", state.pxPerMm ? "مفعّلة" : "غير مفعّلة"]
+        ];
+        $("facts").innerHTML = facts.map(function (f) {
+          return "<div class='fact'><div class='k'>" + esc(f[0]) + "</div><div class='v'>" + esc(f[1]) + "</div></div>";
+        }).join("");
+        $("summaryText").textContent = buildSummaryText();
+        var tb = $("titleBlock"); tb.innerHTML = "";
+        var keys = Object.keys(state.titleBlock);
+        if (state.scale && !state.titleBlock["مقياس الرسم"]) { state.titleBlock["مقياس الرسم"] = state.scale; keys = Object.keys(state.titleBlock); }
+        if (!keys.length) tb.innerHTML = "<li><span class='k'>—</span><span>لم تُقرأ بيانات لوحة عنوان واضحة من الصورة.</span></li>";
+        keys.forEach(function (k) {
+          var li = document.createElement("li");
+          li.innerHTML = "<span class='k'>" + esc(k) + "</span><span>" + esc(state.titleBlock[k]) + "</span>";
+          tb.appendChild(li);
+        });
+      }
+      $("btnCopySummary").addEventListener("click", function () {
+        var txt = buildSummaryText();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(txt).then(function () { toast("اتنسخ الملخص"); }, function () { toast("النسخ مش متاح هنا"); });
+        } else toast("النسخ مش متاح هنا");
+      });
+
+      /* ---------- Exports ---------- */
+      function download(name, content, type) {
+        var blob = new Blob([content], { type: type || "text/plain;charset=utf-8" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 400);
+      }
+      $("btnExportCsv").addEventListener("click", function () {
+        if (!state.dims.length) { toast("مفيش مقاسات لتصديرها"); return; }
+        var rows = [["#", "العنصر", "القيمة", "الوحدة", "القيمة بالمليمتر", "النص في الرسمة", "الثقة %", "ملاحظات"]];
+        state.dims.forEach(function (d, i) {
+          var mm = toMm(d);
+          rows.push([i + 1, d.element, d.value, d.unit, mm == null ? "" : Math.round(mm * 100) / 100, d.raw || "", d.source === "manual" ? "يدوي" : d.confidence, d.note || ""]);
+        });
+        var csv = "﻿" + rows.map(function (r) {
+          return r.map(function (c) { return '"' + String(c).replace(/"/g, '""') + '"'; }).join(",");
+        }).join("\r\n");
+        download("مقاسات-" + (state.fileName || "رسمة") + ".csv", csv, "text/csv;charset=utf-8");
+      });
+      $("btnExportReport").addEventListener("click", function () {
+        if (!state.dims.length && !state.ocrText) { toast("حلّل رسمة الأول"); return; }
+        var out = [];
+        out.push("تقرير رسمة هندسية");
+        out.push("الملف: " + (state.fileName || "—"));
+        out.push("النوع: " + (state.drawingType || "—") + " | الصفحات: " + state.pages.length + " | مقياس الرسم: " + (state.scale || "غير مقروء"));
+        out.push("");
+        out.push("== الملخص ==");
+        out.push(buildSummaryText());
+        out.push("");
+        out.push("== بيانات لوحة العنوان ==");
+        var keys = Object.keys(state.titleBlock);
+        if (!keys.length) out.push("لا توجد بيانات مقروءة.");
+        keys.forEach(function (k) { out.push(k + ": " + state.titleBlock[k]); });
+        out.push("");
+        out.push("== جدول المقاسات ==");
+        state.dims.forEach(function (d, i) {
+          var mm = toMm(d);
+          out.push((i + 1) + ". " + d.element + " = " + d.value + " " + d.unit + (mm != null ? " (" + fmt(mm) + " مم)" : "") + " — ثقة: " + (d.source === "manual" ? "يدوي" : d.confidence + "%") + (d.note ? " — " + d.note : ""));
+        });
+        download("تقرير-" + (state.fileName || "رسمة") + ".txt", out.join("\n"));
+      });
+      $("btnDownloadApp").addEventListener("click", function () {
+        var html = "<!doctype html>\n" + document.documentElement.outerHTML;
+        download("قارئ-الرسومات-الهندسية.html", html, "text/html;charset=utf-8");
+        toast("اتنزّلت نسخة مستقلة — افتحها بأي متصفح من غير Muse (التحليل يحتاج إنترنت أول مرة)");
+      });
+
+      /* ---------- Q&A ---------- */
+      function answer(q) {
+        q = (q || "").trim();
+        if (!q) return "";
+        if (!state.dims.length && !state.ocrText) return "لسه مفيش رسمة محلّلة. ارفع رسمة وحلّلها الأول وبعدين اسألني عنها.";
+        var mms = state.dims.map(function (d) { return { d: d, mm: toMm(d) }; }).filter(function (x) { return x.mm != null; });
+        if (/ملخص|ايه الرسمة|إيه الرسمة|عن الرسمة/.test(q)) return buildSummaryText();
+        if (/أكبر|اكبر|أطول|اطول|أقصى/.test(q) && mms.length) {
+          var mx = mms.reduce(function (a, b) { return b.mm > a.mm ? b : a; });
+          return "أكبر مقاس في الرسمة: " + mx.d.element + " = " + mx.d.value + " " + mx.d.unit + " (" + fmt(mx.mm) + " مم).";
+        }
+        if (/أصغر|اصغر|أقل|اقل/.test(q) && mms.length) {
+          var mn = mms.reduce(function (a, b) { return b.mm < a.mm ? b : a; });
+          return "أصغر مقاس في الرسمة: " + mn.d.element + " = " + mn.d.value + " " + mn.d.unit + " (" + fmt(mn.mm) + " مم).";
+        }
+        if (/عدد|كام مقاس|كم مقاس/.test(q)) return "عدد المقاسات المستخرجة: " + state.dims.length + " مقاسًا في " + state.pages.length + " صفحة.";
+        if (/مقياس|سكيل|scale/i.test(q)) return state.scale ? "مقياس الرسم المقروء من اللوحة: " + state.scale + "." : "مقياس الرسم مش مكتوب بشكل واضح في الرسمة — فعّل المعايرة اليدوية من عارض الرسمة للقياس الدقيق.";
+        if (/نوع/.test(q)) return "نوع الرسمة: " + (state.drawingType || "غير محدد") + ".";
+        if (/ثقة|مراجعة|مش مؤكد|ضعيف/.test(q)) {
+          var low = state.dims.filter(function (d) { return d.source !== "manual" && d.confidence < 55; });
+          if (!low.length) return "مفيش مقاسات منخفضة الثقة — كل المقاسات اتقرأت بثقة كويسة، وبرضه راجع المهم منها على الأصل.";
+          return "المقاسات المحتاجة مراجعة (" + low.length + "):\n" + low.map(function (d) { return "• " + d.element + " = " + d.value + " " + d.unit + " (ثقة " + d.confidence + "%)"; }).join("\n");
+        }
+        // بحث برقم أو اسم عنصر
+        var numMatch = q.match(/\d+(?:[.,]\d+)?/);
+        var hits = state.dims.filter(function (d) {
+          var byElem = String(d.element) && q.indexOf(String(d.element).split(" (")[0]) !== -1 && String(d.element).split(" (")[0].length > 1;
+          var byNum = numMatch && String(d.value).indexOf(numMatch[0].replace(",", ".")) !== -1;
+          return byElem || byNum;
+        });
+        if (hits.length) return "لقيت " + hits.length + " مقاس مطابق:\n" + hits.map(function (d) { return "• " + d.element + " = " + d.value + " " + d.unit; }).join("\n");
+        return "مش لاقي إجابة مباشرة في البيانات المستخرجة. جرّب تسأل عن: أكبر/أصغر مقاس، عدد المقاسات، مقياس الرسم، أو اسم عنصر زي «باب» أو «عمود».";
+      }
+      function ask(q) {
+        var log = $("qaLog");
+        var item = document.createElement("div");
+        item.className = "qa-item";
+        item.innerHTML = "<div class='q'>" + esc(q) + "</div><div class='a'>" + esc(answer(q)) + "</div>";
+        log.appendChild(item);
+        item.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+      $("qaForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+        var v = $("qaInput").value.trim();
+        if (!v) return;
+        $("qaInput").value = "";
+        ask(v);
+      });
+      document.querySelectorAll(".chip-btn").forEach(function (b) {
+        b.addEventListener("click", function () { ask(b.getAttribute("data-q")); });
+      });
+
+      /* ---------- Library (session only) ---------- */
+      function saveToLibrary() {
+        if (!state.pages.length) return;
+        var thumb = state.pages[0].dataUrl;
+        var existing = -1;
+        state.library.forEach(function (p, i) { if (p.name === state.fileName) existing = i; });
+        var proj = {
+          name: state.fileName || "رسمة بدون اسم",
+          type: state.drawingType, scale: state.scale,
+          dims: JSON.parse(JSON.stringify(state.dims)),
+          ocrText: state.ocrText, titleBlock: state.titleBlock,
+          pages: state.pages, thumb: thumb,
+          date: new Date().toLocaleString("ar-EG")
+        };
+        if (existing >= 0) state.library[existing] = proj; else state.library.unshift(proj);
+        renderLibrary();
+      }
+      function renderLibrary() {
+        var q = $("libSearch").value.trim().toLowerCase();
+        var f = $("libFilter").value;
+        var grid = $("libGrid"); grid.innerHTML = "";
+        var shown = state.library.filter(function (p) {
+          return (!f || p.type === f) && (!q || (p.name + " " + p.type).toLowerCase().indexOf(q) !== -1);
+        });
+        $("libEmpty").hidden = state.library.length > 0;
+        shown.forEach(function (p) {
+          var b = document.createElement("button");
+          b.className = "lib-item"; b.type = "button";
+          b.innerHTML = "<img src='" + p.thumb + "' alt='' /><div class='meta'><div class='name'>" + esc(p.name) + "</div>" +
+            "<div class='info'>" + esc(p.type || "—") + " • " + p.dims.length + " مقاس • " + esc(p.date) + "</div></div>";
+          b.addEventListener("click", function () {
+            state.fileName = p.name; state.dims = JSON.parse(JSON.stringify(p.dims));
+            state.ocrText = p.ocrText; state.titleBlock = p.titleBlock;
+            state.drawingType = p.type; state.scale = p.scale; state.pages = p.pages;
+            showPage(0); renderDims(); renderSummary();
+            $("btnAnalyze").disabled = false;
+            toast("اتفتحت الرسمة من المكتبة");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+          grid.appendChild(b);
+        });
+        if (state.library.length && !shown.length) {
+          grid.innerHTML = "<p class='note'>مفيش نتائج مطابقة للبحث أو الفلتر.</p>";
+        }
+      }
+      $("libSearch").addEventListener("input", renderLibrary);
+      $("libFilter").addEventListener("change", renderLibrary);
+
+      renderDims(); renderSummary(); renderLibrary();
+    })();
+    </script>
+  </body>
+</html>
