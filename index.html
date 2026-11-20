@@ -123,6 +123,16 @@
       .bar { height: 10px; background: var(--chip); border-radius: 99px; overflow: hidden; }
       .bar > div { height: 100%; width: 0%; background: var(--accent); transition: width .25s; }
       .progress p { margin: 6px 0 0; font-size: .88rem; color: var(--muted); }
+      .progress.error p { color: var(--danger); font-weight: 600; }
+      #btnAnalyzeCancel[hidden] { display: none !important; }
+      @media (max-width: 520px) {
+        table { min-width: 520px; }
+        th, td { padding: 6px 5px; font-size: .85rem; }
+        table th:nth-child(3), table td:nth-child(3) { width: 104px !important; }
+        table th:nth-child(4), table td:nth-child(4) { width: 80px !important; }
+        table th:nth-child(5), table td:nth-child(5) { width: 112px !important; }
+        td input[type="text"], td input[type="number"] { padding: 4px 4px; }
+      }
 
       .layout { display: grid; grid-template-columns: 1fr; gap: 0; }
       @media (min-width: 980px) {
@@ -171,7 +181,7 @@
 
       /* Table */
       .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
-      table { border-collapse: collapse; width: 100%; min-width: 640px; background: var(--surface); }
+      table { border-collapse: collapse; width: 100%; min-width: 640px; background: var(--surface); table-layout: fixed; }
       th, td { padding: 8px 9px; border-bottom: 1px solid var(--line); text-align: right; vertical-align: middle; font-size: .93rem; }
       th { background: var(--surface-2); font-weight: 700; white-space: nowrap; }
       td input[type="text"], td input[type="number"] { width: 100%; min-height: 38px; padding: 4px 8px; }
@@ -265,6 +275,7 @@
             <option value="أخرى">أخرى</option>
           </select>
           <button class="btn primary" id="btnAnalyze" type="button" disabled>تحليل الرسمة واستخراج المقاسات</button>
+          <button class="btn" id="btnAnalyzeCancel" type="button" hidden>إلغاء التحليل</button>
         </div>
         <div class="progress" id="progressBox">
           <div class="bar"><div id="progressBar"></div></div>
@@ -678,55 +689,113 @@
       });
 
       /* ---------- Analysis (OCR) ---------- */
+      var ocrCtl = null;
       $("btnAnalyze").addEventListener("click", function () {
         if (!state.pages.length) { toast("ارفع رسمة الأول"); return; }
         if (typeof Tesseract === "undefined") { toast("مكتبة التحليل لسه محمّلتش — اتأكد من الإنترنت وحاول تاني"); return; }
-        $("btnAnalyze").disabled = true;
+        if (ocrCtl) return;
         runOcr();
       });
+      $("btnAnalyzeCancel").addEventListener("click", function () {
+        stopOcr("اتلغى التحليل — الرسمة محفوظة، دوس «تحليل الرسمة» لما تكون جاهز", false);
+      });
+
+      function analyzeNote(msg, isError) {
+        var box = $("progressBox");
+        box.classList.add("show");
+        box.classList.toggle("error", !!isError);
+        $("progressBar").style.width = "0%";
+        $("progressText").textContent = msg;
+      }
+
+      function stopOcr(msg, isError) {
+        var c = ocrCtl; if (!c) return;
+        c.stopped = true;
+        ocrCtl = null;
+        clearInterval(c.dog);
+        if (c.worker) { try { c.worker.terminate(); } catch (e) {} }
+        $("btnAnalyze").disabled = false;
+        $("btnAnalyzeCancel").hidden = true;
+        analyzeNote(msg, isError);
+      }
 
       function runOcr() {
-        var allText = [], allDims = [], pageWords = [];
-        var chain = Promise.resolve();
-        state.pages.forEach(function (p, idx) {
-          chain = chain.then(function () {
-            setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ قراءة صفحة " + (idx + 1) + " من " + state.pages.length + " — استخراج النصوص والأرقام…");
-            return ocrImage(p).then(function (ocrUrl) {
-              return Tesseract.recognize(ocrUrl, "ara+eng", {
-                logger: function (m) {
-                  var pc = Math.round((m.progress || 0) * 100);
-                  if (m.status === "recognizing text") {
-                    setProgress(true, Math.round(100 * (idx + m.progress) / state.pages.length), "جارٍ قراءة صفحة " + (idx + 1) + " — " + pc + "%");
-                  } else if (m.status === "loading tesseract core") {
-                    setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ تحميل محرك التحليل — " + pc + "%");
-                  } else if (m.status === "loading language traineddata") {
-                    setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ تحميل بيانات اللغة (أول مرة بس) — " + pc + "%");
-                  } else if (m.status === "initializing tesseract" || m.status === "initializing api") {
-                    setProgress(true, Math.round(100 * idx / state.pages.length), "جارٍ تجهيز محرك التحليل…");
-                  }
-                }
-              });
-            }).then(function (res) {
-              allText.push(res.data.text || "");
-              pageWords = pageWords.concat(res.data.words || []);
-              var dims = extractDims(res.data);
-              dims.forEach(function (d) { if (state.pages.length > 1) d.note = (d.note ? d.note + " — " : "") + "صفحة " + (idx + 1); });
-              allDims = allDims.concat(dims);
-            }).catch(function () { /* صفحة فشل قراءتها: نتجاوزها */ });
+        var allText = [], allDims = [], failed = 0, curPage = 0;
+        var ctl = { worker: null, stopped: false, lastStage: "", lastEvent: Date.now(), dog: null };
+        ocrCtl = ctl;
+        $("btnAnalyze").disabled = true;
+        $("btnAnalyzeCancel").hidden = false;
+        $("progressBox").classList.remove("error");
+
+        ctl.dog = setInterval(function () {
+          if (Date.now() - ctl.lastEvent > 60000) {
+            stopOcr(ctl.lastStage === "recognizing text"
+              ? "التحليل وقف في نص القراءة — الرسمة محفوظة، دوس «تحليل الرسمة» تاني"
+              : "التحميل وقف — غالبًا النت فصل أثناء تحميل محرك التحليل. الرسمة محفوظة: اتأكد من الاتصال ودوس «تحليل الرسمة» تاني", true);
+          }
+        }, 5000);
+
+        var logger = function (m) {
+          ctl.lastEvent = Date.now();
+          ctl.lastStage = m.status;
+          var pc = Math.round((m.progress || 0) * 100);
+          var idx = curPage, total = state.pages.length;
+          if (m.status === "recognizing text") {
+            setProgress(true, Math.round(100 * (idx + m.progress) / total), "جارٍ قراءة صفحة " + (idx + 1) + " — " + pc + "%");
+          } else if (m.status === "loading tesseract core") {
+            setProgress(true, Math.round(100 * idx / total), "جارٍ تحميل محرك التحليل — " + pc + "%");
+          } else if (m.status === "loading language traineddata") {
+            setProgress(true, Math.round(100 * idx / total), "جارٍ تحميل بيانات اللغة (أول مرة بس) — " + pc + "%");
+          } else if (m.status === "initializing tesseract" || m.status === "initializing api") {
+            setProgress(true, Math.round(100 * idx / total), "جارٍ تجهيز محرك التحليل…");
+          }
+        };
+
+        var oem = (Tesseract.OEM && typeof Tesseract.OEM.LSTM_ONLY !== "undefined") ? Tesseract.OEM.LSTM_ONLY : 1;
+        Tesseract.createWorker("ara+eng", oem, { logger: logger }).then(function (worker) {
+          if (ctl.stopped) { try { worker.terminate(); } catch (e) {} return; }
+          ctl.worker = worker;
+          var chain = Promise.resolve();
+          state.pages.forEach(function (p, pageIdx) {
+            chain = chain.then(function () {
+              if (ctl.stopped) return;
+              curPage = pageIdx;
+              setProgress(true, Math.round(100 * pageIdx / state.pages.length), "جارٍ قراءة صفحة " + (pageIdx + 1) + " من " + state.pages.length + " — استخراج النصوص والأرقام…");
+              return ocrImage(p).then(function (ocrUrl) {
+                return worker.recognize(ocrUrl);
+              }).then(function (res) {
+                allText.push(res.data.text || "");
+                var dims = extractDims(res.data);
+                dims.forEach(function (d) { if (state.pages.length > 1) d.note = (d.note ? d.note + " — " : "") + "صفحة " + (pageIdx + 1); });
+                allDims = allDims.concat(dims);
+              }).catch(function () { failed++; });
+            });
           });
-        });
-        chain.then(function () {
-          setProgress(false);
-          $("btnAnalyze").disabled = false;
-          state.ocrText = allText.join("\n");
-          state.dims = dedupeDims(allDims);
-          state.scale = detectScale(state.ocrText);
-          state.titleBlock = extractTitleBlock(state.ocrText);
-          var chosen = $("typeSelect").value;
-          state.drawingType = chosen === "auto" ? (classifyType(state.ocrText) || "أخرى") : chosen;
-          renderDims(); renderSummary(); saveToLibrary();
-          if (state.dims.length) toast("التحليل خلص: لقيت " + state.dims.length + " مقاس — راجع المقاسات ضعيفة الثقة");
-          else toast("التحليل خلص، بس ملقيتش أرقام واضحة — جرّب صورة أوضح أو أضف المقاسات يدويًا");
+          return chain.then(function () {
+            if (ctl.stopped) return;
+            if (ctl.worker) { try { ctl.worker.terminate(); } catch (e) {} }
+            clearInterval(ctl.dog);
+            ocrCtl = null;
+            $("btnAnalyze").disabled = false;
+            $("btnAnalyzeCancel").hidden = true;
+            setProgress(false);
+            if (failed > 0 && allText.join("").trim() === "") {
+              analyzeNote("محرك التحليل مقدرش يقرا الصفحة — غالبًا النت فصل أثناء التحميل. الرسمة محفوظة، دوس «تحليل الرسمة» تاني", true);
+              return;
+            }
+            state.ocrText = allText.join("\n");
+            state.dims = dedupeDims(allDims);
+            state.scale = detectScale(state.ocrText);
+            state.titleBlock = extractTitleBlock(state.ocrText);
+            var chosen = $("typeSelect").value;
+            state.drawingType = chosen === "auto" ? (classifyType(state.ocrText) || "أخرى") : chosen;
+            renderDims(); renderSummary(); saveToLibrary();
+            if (failed > 0) toast("فيه " + failed + " صفحة متقرتش بسبب التحميل — النتايج ناقصة، دوس «تحليل الرسمة» تاني");
+            else if (state.dims.length) toast("التحليل خلص: لقيت " + state.dims.length + " مقاس — راجع المقاسات ضعيفة الثقة");
+            else toast("التحليل خلص، بس ملقيتش أرقام واضحة — جرّب صورة أوضح أو أضف المقاسات يدويًا");
+          });
+        }).catch(function () {
+          stopOcr("محرك التحليل محمّلش — اتأكد من النت ودوس «تحليل الرسمة» تاني، الرسمة محفوظة", true);
         });
       }
 
